@@ -7,7 +7,9 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QString>
+#include <QFileInfo>
 
 struct FfiScanResult;
 struct FfiResolvedTable;
