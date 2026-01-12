@@ -63,6 +63,7 @@ if(WIN32)
     if(WINDEPLOYQT)
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${WINDEPLOYQT} --no-translations --no-system-d3d-compiler
+                    --no-network --no-opengl-sw
                     "$<TARGET_FILE:${PROJECT_NAME}>"
             COMMENT "Running windeployqt..."
         )

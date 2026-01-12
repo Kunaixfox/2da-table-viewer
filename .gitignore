@@ -1,5 +1,9 @@
 # Build artifacts
 /target/
+/build/
+/dist/
+**/build/
+**/dist/
 
 # IDE
 .idea/
@@ -10,9 +14,10 @@
 # OS
 .DS_Store
 Thumbs.db
+nul
 
 # Temporary files
-tmpclaude-*
+**/tmpclaude-*
 *.tmp
 
 # Export outputs (user-generated)
