@@ -23,6 +23,7 @@ private slots:
     void onOpenFolder();
     void onExport();
     void onSavePatch();
+    void onImportPatch();
     void onApplyPatch();
     void onUndo();
     void onRedo();
@@ -31,7 +32,7 @@ private slots:
     // Inter-panel communication
     void onFamilySelected(const QString& familyName);
     void onCellSelected(int row, int col);
-    void onEditRequested(int rowId, const QString& column, const QString& newValue);
+    void onEditRequested(int64_t rowId, const QString& column, const QString& newValue);
     void onPatchApplied();
 
 private:
@@ -55,6 +56,7 @@ private:
 
     // Pending edits (row_id, column, new_value)
     QList<PendingEditInfo> m_pendingEdits;
+    QList<PendingEditInfo> m_undoStack;
 };
 
 #endif // MAINWINDOW_H

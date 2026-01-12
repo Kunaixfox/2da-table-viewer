@@ -20,6 +20,7 @@ TablePanel::TablePanel(QWidget* parent)
     , m_currentPage(0)
     , m_rowsPerPage(50)
     , m_totalRows(0)
+    , m_updatingCell(false)
 {
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -97,6 +98,9 @@ TablePanel::TablePanel(QWidget* parent)
 
     connect(m_nextButton, &QPushButton::clicked,
             this, &TablePanel::onNextPage);
+
+    connect(m_model, &QStandardItemModel::dataChanged,
+            this, &TablePanel::onCellDataChanged);
 }
 
 TablePanel::~TablePanel()
@@ -259,7 +263,7 @@ void TablePanel::populateTable()
 
             QStandardItem* item = new QStandardItem(value);
             item->setData(source, Qt::UserRole);  // Store full source path
-            item->setEditable(false);
+            item->setEditable(true);  // Enable double-click editing
             items.append(item);
         }
 
@@ -397,4 +401,101 @@ void TablePanel::onNextPage()
         ++m_currentPage;
         populateTable();
     }
+}
+
+void TablePanel::onCellDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight)
+{
+    Q_UNUSED(bottomRight);
+
+    // Skip if we're programmatically updating a cell
+    if (m_updatingCell) {
+        return;
+    }
+
+    if (!topLeft.isValid() || !m_resolvedTable) {
+        return;
+    }
+
+    int displayRow = topLeft.row();
+    int col = topLeft.column();
+
+    // Don't process _source column edits
+    FfiWrapper& ffi = FfiWrapper::instance();
+    size_t colCount = ffi.tableColumnCount(m_resolvedTable);
+    if ((size_t)col >= colCount) {
+        return;
+    }
+
+    // Calculate actual row index
+    int actualRow;
+    if (m_filteredIndices.isEmpty() && m_filterText.isEmpty()) {
+        actualRow = m_currentPage * m_rowsPerPage + displayRow;
+    } else {
+        int pageOffset = m_currentPage * m_rowsPerPage + displayRow;
+        if (pageOffset < m_filteredIndices.size()) {
+            actualRow = m_filteredIndices[pageOffset];
+        } else {
+            return;
+        }
+    }
+
+    QString newValue = m_model->data(topLeft).toString();
+    emit cellEdited(actualRow, col, newValue);
+}
+
+void TablePanel::updateCellValue(int rowIndex, int colIndex, const QString& value)
+{
+    if (!m_resolvedTable) return;
+
+    // Find display row for this actual row index
+    int displayRow = -1;
+    if (m_filteredIndices.isEmpty() && m_filterText.isEmpty()) {
+        int pageStart = m_currentPage * m_rowsPerPage;
+        int pageEnd = pageStart + m_rowsPerPage;
+        if (rowIndex >= pageStart && rowIndex < pageEnd) {
+            displayRow = rowIndex - pageStart;
+        }
+    } else {
+        for (int i = 0; i < m_filteredIndices.size(); ++i) {
+            if (m_filteredIndices[i] == (size_t)rowIndex) {
+                int pageStart = m_currentPage * m_rowsPerPage;
+                int pageEnd = pageStart + m_rowsPerPage;
+                if (i >= pageStart && i < pageEnd) {
+                    displayRow = i - pageStart;
+                }
+                break;
+            }
+        }
+    }
+
+    if (displayRow < 0 || displayRow >= m_model->rowCount()) return;
+
+    QModelIndex index = m_model->index(displayRow, colIndex);
+    if (index.isValid()) {
+        m_updatingCell = true;
+        m_model->setData(index, value);
+        m_updatingCell = false;
+    }
+}
+
+void TablePanel::revertCellValue(int rowIndex, int colIndex)
+{
+    if (!m_resolvedTable) return;
+
+    FfiWrapper& ffi = FfiWrapper::instance();
+
+    // Get original value from FFI
+    FfiResolvedCell* cell = ffi.tableGetCell(m_resolvedTable, rowIndex, colIndex);
+    if (!cell) return;
+
+    QString originalValue;
+    switch (cell->value.value_type) {
+        case 1: originalValue = QString::number(cell->value.int_value); break;
+        case 2: originalValue = QString::number(cell->value.float_value, 'g', 6); break;
+        case 3: if (cell->value.string_value) originalValue = QString::fromUtf8(cell->value.string_value); break;
+        default: break;
+    }
+    ffi.freeCell(cell);
+
+    updateCellValue(rowIndex, colIndex, originalValue);
 }

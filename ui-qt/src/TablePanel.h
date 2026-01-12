@@ -24,17 +24,21 @@ public:
 
     void loadFamily(FfiScanResult* scanResult, const QString& familyName);
     void clear();
+    void updateCellValue(int rowIndex, int colIndex, const QString& value);
+    void revertCellValue(int rowIndex, int colIndex);
 
     FfiResolvedTable* resolvedTable() const { return m_resolvedTable; }
     QString currentFamily() const { return m_currentFamily; }
 
 signals:
     void cellSelected(int row, int col);
+    void cellEdited(int row, int col, const QString& newValue);
 
 private slots:
     void onFilterTextChanged(const QString& text);
     void onFilterColumnChanged(int index);
     void onCellClicked(const QModelIndex& index);
+    void onCellDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight);
     void onPrevPage();
     void onNextPage();
 
@@ -70,6 +74,7 @@ private:
     int m_rowsPerPage;
     int m_totalRows;
     QList<size_t> m_filteredIndices;  // Indices of rows matching filter
+    bool m_updatingCell;  // Flag to prevent recursive dataChanged signals
 };
 
 #endif // TABLEPANEL_H

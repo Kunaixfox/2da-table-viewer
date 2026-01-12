@@ -43,8 +43,30 @@ GUI Application:
   3. Browse families in the left panel
   4. Click a family to view the merged table
   5. Click any cell to see its provenance (source file)
-  6. Use the Edit tab to make changes
-  7. Save patches or export modified files
+  6. Double-click a cell to edit it directly, or use the Edit tab
+  7. Export or apply patches (see workflows below)
+
+
+WORKFLOWS
+---------
+
+Quick Export (with pending edits):
+  Edit cells -> File -> Export (Ctrl+E)
+  Exports the merged table with your edits included.
+
+Save & Share Patches:
+  Edit cells -> Patch -> Save Patch (Ctrl+Shift+S)
+  Creates a JSON file with your edits that can be shared.
+
+Import Patch (preview changes):
+  Patch -> Import Patch (Ctrl+Shift+I)
+  Loads a patch file and shows the changes in the current view.
+  You can then Export or Apply Patch.
+
+Apply Patch (create modified files):
+  Patch -> Apply Patch (Ctrl+Shift+A)
+  Reads original source files, applies edits, writes new files
+  to your chosen output folder. Original files are never modified.
 
 Command-Line Tool (da-cli.exe):
 

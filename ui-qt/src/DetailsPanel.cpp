@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QSettings>
+#include <QFileDialog>
 
 DetailsPanel::DetailsPanel(QWidget* parent)
     : QWidget(parent)
@@ -381,7 +382,7 @@ void DetailsPanel::onClearEdits()
 {
     m_pendingList->clear();
     m_clearButton->setEnabled(false);
-    // The main window should handle clearing its pending edits list
+    emit clearEditsRequested();
 }
 
 void DetailsPanel::onUndoHistoryEntry()
@@ -391,6 +392,28 @@ void DetailsPanel::onUndoHistoryEntry()
         return;
     }
 
-    // TODO: Implement undo via FFI
-    // Would need to: load the history entry, reverse the changes, update files
+    size_t index = selected.first()->data(0, Qt::UserRole).toULongLong();
+
+    // Get history entry to find family name
+    FfiHistoryEntry* entry = FfiWrapper::instance().historyGetEntry(m_historyFile, index);
+    if (!entry) {
+        return;
+    }
+
+    QString family = entry->family ? QString::fromUtf8(entry->family) : QString();
+    FfiWrapper::instance().freeHistoryEntry(entry);
+
+    if (family.isEmpty()) {
+        return;
+    }
+
+    // Ask for output directory
+    QString outputDir = QFileDialog::getExistingDirectory(this,
+        tr("Select Output Directory for Restored Files"));
+
+    if (outputDir.isEmpty()) {
+        return;
+    }
+
+    emit undoHistoryRequested(family, outputDir);
 }

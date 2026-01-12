@@ -20,6 +20,9 @@ nul
 **/tmpclaude-*
 *.tmp
 
+# Claude Code instructions (local)
+CLAUDE.md
+
 # Export outputs (user-generated)
 /exports/
 /batch_exports/

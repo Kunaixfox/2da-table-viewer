@@ -16,7 +16,7 @@ struct FfiHistoryFile;
 
 // Forward declaration for pending edit
 struct PendingEditInfo {
-    int rowId;
+    int64_t rowId;  // Must match FFI int64_t row IDs
     QString column;
     QString value;
 };
@@ -35,7 +35,9 @@ public:
     void clear();
 
 signals:
-    void editRequested(int rowId, const QString& column, const QString& newValue);
+    void editRequested(int64_t rowId, const QString& column, const QString& newValue);
+    void clearEditsRequested();
+    void undoHistoryRequested(const QString& family, const QString& outputDir);
 
 private slots:
     void onApplyEdit();

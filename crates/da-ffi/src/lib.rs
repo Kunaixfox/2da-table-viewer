@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
 use std::ptr;
 
@@ -564,80 +565,91 @@ pub unsafe extern "C" fn ffi_apply_patch(
 ) -> *mut FfiPatchResult {
     clear_error();
 
-    if scan_result.is_null() || patch_json.is_null() || output_dir.is_null() {
-        set_error("Null pointer");
-        return ptr::null_mut();
-    }
-
-    let json = match from_c_str(patch_json) {
-        Some(j) => j,
-        None => {
-            set_error("Invalid patch JSON");
+    // Wrap in catch_unwind to prevent panics from crashing the app
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if scan_result.is_null() || patch_json.is_null() || output_dir.is_null() {
+            set_error("Null pointer");
             return ptr::null_mut();
         }
-    };
 
-    let out_path = match from_c_str(output_dir) {
-        Some(p) => PathBuf::from(p),
-        None => {
-            set_error("Invalid output directory");
-            return ptr::null_mut();
-        }
-    };
-
-    let history_file_path = from_c_str(history_path).map(PathBuf::from);
-
-    let patch: PatchFile = match serde_json::from_str(&json) {
-        Ok(p) => p,
-        Err(e) => {
-            set_error(&format!("Invalid patch format: {}", e));
-            return ptr::null_mut();
-        }
-    };
-
-    let family = match (*scan_result)
-        .families
-        .iter()
-        .find(|f| f.name == patch.family)
-    {
-        Some(f) => f,
-        None => {
-            set_error(&format!("Family not found: {}", patch.family));
-            return ptr::null_mut();
-        }
-    };
-
-    // First merge the family to get the resolved table
-    let table = match merge_family(family) {
-        Ok(t) => t,
-        Err(e) => {
-            set_error(&format!("Failed to merge family: {}", e));
-            return ptr::null_mut();
-        }
-    };
-
-    // Export with edits
-    match da_core::export_with_edits(&table, &patch, &out_path) {
-        Ok(result) => {
-            // Save to history if path provided
-            if let Some(hist_path) = history_file_path {
-                let entry = da_core::create_history_entry(
-                    &patch,
-                    result.files_written.clone(),
-                    out_path,
-                );
-                if let Ok(mut history) = HistoryFile::load(&hist_path) {
-                    history.add_entry(entry);
-                    let _ = history.save(&hist_path);
-                }
+        let json = match from_c_str(patch_json) {
+            Some(j) => j,
+            None => {
+                set_error("Invalid patch JSON");
+                return ptr::null_mut();
             }
+        };
 
-            Box::into_raw(Box::new(FfiPatchResult {
-                exported_files: result.files_written,
-            }))
+        let out_path = match from_c_str(output_dir) {
+            Some(p) => PathBuf::from(p),
+            None => {
+                set_error("Invalid output directory");
+                return ptr::null_mut();
+            }
+        };
+
+        let history_file_path = from_c_str(history_path).map(PathBuf::from);
+
+        let patch: PatchFile = match serde_json::from_str(&json) {
+            Ok(p) => p,
+            Err(e) => {
+                set_error(&format!("Invalid patch format: {}", e));
+                return ptr::null_mut();
+            }
+        };
+
+        let family = match (*scan_result)
+            .families
+            .iter()
+            .find(|f| f.name == patch.family)
+        {
+            Some(f) => f,
+            None => {
+                set_error(&format!("Family not found: {}", patch.family));
+                return ptr::null_mut();
+            }
+        };
+
+        // First merge the family to get the resolved table
+        let table = match merge_family(family) {
+            Ok(t) => t,
+            Err(e) => {
+                set_error(&format!("Failed to merge family: {}", e));
+                return ptr::null_mut();
+            }
+        };
+
+        // Export with edits
+        match da_core::export_with_edits(&table, &patch, &out_path) {
+            Ok(result) => {
+                // Save to history if path provided
+                if let Some(hist_path) = history_file_path {
+                    let entry = da_core::create_history_entry(
+                        &patch,
+                        result.files_written.clone(),
+                        out_path,
+                    );
+                    if let Ok(mut history) = HistoryFile::load(&hist_path) {
+                        history.add_entry(entry);
+                        let _ = history.save(&hist_path);
+                    }
+                }
+
+                Box::into_raw(Box::new(FfiPatchResult {
+                    exported_files: result.files_written,
+                }))
+            }
+            Err(e) => {
+                set_error(&e.to_string());
+                ptr::null_mut()
+            }
         }
-        Err(e) => {
-            set_error(&e.to_string());
+    }));
+
+    match result {
+        Ok(ptr) => ptr,
+        Err(_) => {
+            set_error("Internal error: panic occurred in apply_patch");
             ptr::null_mut()
         }
     }
@@ -649,100 +661,112 @@ pub unsafe extern "C" fn ffi_validate_patch(
     scan_result: *const FfiScanResult,
     patch_json: *const c_char,
 ) -> FfiStringResult {
-    if scan_result.is_null() || patch_json.is_null() {
-        return FfiStringResult {
-            data: to_c_string("Null pointer"),
-            len: 12,
-            success: 0,
-        };
-    }
-
-    let json = match from_c_str(patch_json) {
-        Some(j) => j,
-        None => {
+    // Wrap in catch_unwind to prevent panics from crashing the app
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if scan_result.is_null() || patch_json.is_null() {
             return FfiStringResult {
-                data: to_c_string("Invalid JSON string"),
-                len: 19,
+                data: to_c_string("Null pointer"),
+                len: 12,
                 success: 0,
+            };
+        }
+
+        let json = match from_c_str(patch_json) {
+            Some(j) => j,
+            None => {
+                return FfiStringResult {
+                    data: to_c_string("Invalid JSON string"),
+                    len: 19,
+                    success: 0,
+                }
+            }
+        };
+
+        let patch: PatchFile = match serde_json::from_str(&json) {
+            Ok(p) => p,
+            Err(e) => {
+                let msg = format!("Invalid patch format: {}", e);
+                let len = msg.len();
+                return FfiStringResult {
+                    data: to_c_string(&msg),
+                    len,
+                    success: 0,
+                };
+            }
+        };
+
+        // Check family exists
+        let family = match (*scan_result)
+            .families
+            .iter()
+            .find(|f| f.name == patch.family)
+        {
+            Some(f) => f,
+            None => {
+                let msg = format!("Family not found: {}", patch.family);
+                let len = msg.len();
+                return FfiStringResult {
+                    data: to_c_string(&msg),
+                    len,
+                    success: 0,
+                };
+            }
+        };
+
+        // Merge to validate edits
+        let table = match merge_family(family) {
+            Ok(t) => t,
+            Err(e) => {
+                let msg = format!("Failed to merge family: {}", e);
+                let len = msg.len();
+                return FfiStringResult {
+                    data: to_c_string(&msg),
+                    len,
+                    success: 0,
+                };
+            }
+        };
+
+        // Validate each edit
+        for edit in &patch.edits {
+            // Check column exists
+            if !table.columns.iter().any(|c| c.name == edit.column) {
+                let msg = format!("Column not found: {}", edit.column);
+                let len = msg.len();
+                return FfiStringResult {
+                    data: to_c_string(&msg),
+                    len,
+                    success: 0,
+                };
+            }
+
+            // Check row exists
+            if !table.rows.iter().any(|r| r.id == Some(edit.row_id)) {
+                let msg = format!("Row not found: {}", edit.row_id);
+                let len = msg.len();
+                return FfiStringResult {
+                    data: to_c_string(&msg),
+                    len,
+                    success: 0,
+                };
             }
         }
-    };
 
-    let patch: PatchFile = match serde_json::from_str(&json) {
-        Ok(p) => p,
-        Err(e) => {
-            let msg = format!("Invalid patch format: {}", e);
-            let len = msg.len();
-            return FfiStringResult {
-                data: to_c_string(&msg),
-                len,
-                success: 0,
-            };
+        // Valid
+        FfiStringResult {
+            data: ptr::null_mut(),
+            len: 0,
+            success: 1,
         }
-    };
+    }));
 
-    // Check family exists
-    let family = match (*scan_result)
-        .families
-        .iter()
-        .find(|f| f.name == patch.family)
-    {
-        Some(f) => f,
-        None => {
-            let msg = format!("Family not found: {}", patch.family);
-            let len = msg.len();
-            return FfiStringResult {
-                data: to_c_string(&msg),
-                len,
-                success: 0,
-            };
-        }
-    };
-
-    // Merge to validate edits
-    let table = match merge_family(family) {
-        Ok(t) => t,
-        Err(e) => {
-            let msg = format!("Failed to merge family: {}", e);
-            let len = msg.len();
-            return FfiStringResult {
-                data: to_c_string(&msg),
-                len,
-                success: 0,
-            };
-        }
-    };
-
-    // Validate each edit
-    for edit in &patch.edits {
-        // Check column exists
-        if !table.columns.iter().any(|c| c.name == edit.column) {
-            let msg = format!("Column not found: {}", edit.column);
-            let len = msg.len();
-            return FfiStringResult {
-                data: to_c_string(&msg),
-                len,
-                success: 0,
-            };
-        }
-
-        // Check row exists
-        if !table.rows.iter().any(|r| r.id == Some(edit.row_id)) {
-            let msg = format!("Row not found: {}", edit.row_id);
-            let len = msg.len();
-            return FfiStringResult {
-                data: to_c_string(&msg),
-                len,
-                success: 0,
-            };
-        }
-    }
-
-    // Valid
-    FfiStringResult {
-        data: ptr::null_mut(),
-        len: 0,
-        success: 1,
+    match result {
+        Ok(r) => r,
+        Err(_) => FfiStringResult {
+            data: to_c_string("Internal error: panic occurred in validate_patch"),
+            len: 47,
+            success: 0,
+        },
     }
 }
 
