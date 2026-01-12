@@ -202,6 +202,7 @@ name = "da-ffi"
 version = "0.1.0"
 dependencies = [
  "da-core",
+ "serde_json",
 ]
 
 [[package]]

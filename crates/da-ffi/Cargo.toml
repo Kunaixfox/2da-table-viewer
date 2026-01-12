@@ -10,6 +10,7 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 da-core = { path = "../da-core" }
+serde_json.workspace = true
 
 [build-dependencies]
 # cbindgen = "0.26"  # Uncomment when ready to generate C headers
