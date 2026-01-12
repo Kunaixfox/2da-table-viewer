@@ -98,7 +98,3 @@ REQUIREMENTS
 * Windows 10/11 (64-bit)
 
 
-LICENSE
--------
-
-MIT License
