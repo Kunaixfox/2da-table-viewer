@@ -6,8 +6,10 @@
 //! - Group files into "families" based on naming conventions
 //! - Merge family members with provenance tracking
 //! - Apply patches (edits) and export modified source files
+//! - Track patch history for undo support
 
 pub mod error;
+pub mod history;
 pub mod merger;
 pub mod parser;
 pub mod patch;
@@ -15,6 +17,7 @@ pub mod scanner;
 pub mod table;
 
 pub use error::{Error, Result};
+pub use history::{create_history_entry, HistoryEntry, HistoryFile};
 pub use merger::{merge_family, ResolvedCell, ResolvedRow, ResolvedTable};
 pub use parser::parse_csv;
 pub use patch::{apply_patch, export_with_edits, BatchFile, Edit, ExportResult, PatchFile, PatchResult};

@@ -57,6 +57,21 @@ da-cli create-batch --root <path> --export-dir <dir> --output batch.json
 
 # Run a batch of patches
 da-cli batch --batch batch.json
+
+# Search families by name
+da-cli search --root <path> --pattern <text>
+
+# Filter rows by column value
+da-cli filter --root <path> --family <name> --column <col> --value <text> [--limit N]
+
+# Validate a patch before applying
+da-cli validate --root <path> --patch patch.json
+
+# View patch history
+da-cli history [-H history.json] [--family <name>]
+
+# Undo last patch for a family
+da-cli undo --root <path> -H history.json --family <name> --output <dir>
 ```
 
 ## Patch/Export Workflow
