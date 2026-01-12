@@ -1,0 +1,13 @@
+[package]
+name = "da-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core library for parsing and merging Dragon Age 2DA tables"
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+csv.workspace = true
+walkdir.workspace = true

@@ -1,0 +1,20 @@
+# Build artifacts
+/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmpclaude-*
+*.tmp
+
+# Export outputs (user-generated)
+/exports/
+/batch_exports/

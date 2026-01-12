@@ -1,0 +1,15 @@
+[package]
+name = "da-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "C FFI bindings for da-core library"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+da-core = { path = "../da-core" }
+
+[build-dependencies]
+# cbindgen = "0.26"  # Uncomment when ready to generate C headers
