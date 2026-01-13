@@ -16,12 +16,21 @@ FEATURES
 
 * Search & Filter - Find families by name, filter rows by column values
 
+* Direct Cell Editing - Double-click any cell to edit it directly
+
 * Edit & Export - Make changes and export modified source files
   (originals untouched)
 
-* Patch System - Save edits as JSON patch files, validate before applying
+* Patch System - Save, import, and apply JSON patch files for sharing edits
 
-* History & Undo - Track applied patches with full undo support
+* History & Undo - Track applied patches with full undo/redo support
+
+
+INCLUDED TOOLS
+--------------
+
+* da-table-viewer.exe - Main GUI application
+* da-cli.exe - Command-line tool for scripting/automation
 
 
 INSTALLATION
@@ -68,15 +77,29 @@ Apply Patch (create modified files):
   Reads original source files, applies edits, writes new files
   to your chosen output folder. Original files are never modified.
 
-Command-Line Tool (da-cli.exe):
 
-  da-cli list-families --root ./2da
-  da-cli show --root ./2da --family achievements
-  da-cli export --root ./2da --family achievements --format csv --output out.csv
-  da-cli search --root ./2da --pattern "abi"
-  da-cli filter --root ./2da --family achievements --column Name --value "Hero"
-  da-cli create-patch --family achievements --output patch.json
-  da-cli patch --root ./2da --patch patch.json --output exports/
+KEYBOARD SHORTCUTS
+------------------
+
+Ctrl+O              Open Folder
+Ctrl+E              Export
+Ctrl+Z              Undo
+Ctrl+Y              Redo
+Ctrl+Shift+S        Save Patch
+Ctrl+Shift+I        Import Patch
+Ctrl+Shift+A        Apply Patch
+
+
+COMMAND-LINE TOOL
+-----------------
+
+da-cli list-families --root ./2da
+da-cli show --root ./2da --family achievements
+da-cli export --root ./2da --family achievements --format csv --output out.csv
+da-cli search --root ./2da --pattern "abi"
+da-cli filter --root ./2da --family achievements --column Name --value "Hero"
+da-cli create-patch --family achievements --output patch.json
+da-cli patch --root ./2da --patch patch.json --output exports/
 
 
 HOW IT WORKS
@@ -118,5 +141,4 @@ REQUIREMENTS
 ------------
 
 * Windows 10/11 (64-bit)
-
 
